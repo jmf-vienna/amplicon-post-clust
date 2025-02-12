@@ -1,5 +1,7 @@
 library(targets)
 
+jmf::quiet()
+options(warn = 2L)
 tar_option_set(
   packages = c("cli", "fs", "purrr", "readr", "rlang", "stringr", "vctrs"),
   format = "qs",
