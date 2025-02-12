@@ -1,0 +1,5 @@
+linters: all_linters(
+    object_usage_linter = NULL,
+    undesirable_function_linter = NULL,
+    line_length_linter = line_length_linter(160)
+  )
