@@ -1,5 +1,5 @@
 tidy_counts_matrix <- function(counts_matrix) {
-  counts <-
+  counts_raw <-
     counts_matrix |>
     rename(feature := 1L) |>
     pivot_longer(!feature, names_to = "sample", values_to = "count") |>
@@ -11,7 +11,7 @@ tidy_counts_matrix <- function(counts_matrix) {
     arrange(feature, sample)
 
   observations <-
-    counts |>
+    counts_raw |>
     count(feature, sample) |>
     filter(n != 1L)
 
@@ -21,15 +21,22 @@ tidy_counts_matrix <- function(counts_matrix) {
     )
   }
 
-  counts
+  counts_raw
+}
+
+tidy_counts <- function(counts_raw, features) {
+  counts_raw |>
+    left_join(features |> select(feature, orientation, new_feature_id), by = join_by(feature, orientation))
 }
 
 trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
   counts |>
-    rename("{feature_id_var}" := feature, "{sample_id_var}" := sample, "{count_var}" := count)
+    select(new_feature_id, sample, count) |>
+    arrange(new_feature_id, sample) |>
+    rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample, "{count_var}" := count)
 }
 
-tidy_features <- function(features_sequences, counts) {
+tidy_features <- function(features_sequences, counts_raw) {
   loadNamespace("Biostrings")
 
   features <- tibble(
@@ -40,16 +47,21 @@ tidy_features <- function(features_sequences, counts) {
   ) |>
     arrange(feature)
 
-  orientation <- counts |> distinct(feature, orientation)
+  orientation <- counts_raw |> distinct(feature, orientation)
 
   stopifnot(identical(features[["feature"]], orientation[["feature"]]))
 
   features |>
     left_join(orientation, by = "feature") |>
-    mutate(Sequence = if_else(orientation == "reverse", seq_revcomp, seq))
+    mutate(
+      Sequence = if_else(orientation == "reverse", seq_revcomp, seq),
+      new_feature_id = Sequence |> openssl::sha1()
+    )
 }
 
 trim_features <- function(features, feature_id_var) {
   features |>
-    select(feature, Sequence_length, Sequence, orientation)
+    distinct(new_feature_id, Sequence_length, Sequence) |>
+    arrange(new_feature_id) |>
+    rename("{feature_id_var}" := new_feature_id)
 }

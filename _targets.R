@@ -24,12 +24,13 @@ list(
   # counts ----
   tar_target(counts_matrix_file, find_one_file(input_path, "*.tsv"), format = "file"),
   tar_target(counts_matrix, read_tsv(counts_matrix_file)),
-  tar_target(counts, counts_matrix |> tidy_counts_matrix()),
+  tar_target(counts_raw, counts_matrix |> tidy_counts_matrix()),
+  tar_target(counts, counts_raw |> tidy_counts(features)),
 
   # features ----
   tar_target(features_sequences_file, find_one_file(input_path, "*.fna"), format = "file"),
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
-  tar_target(features, tidy_features(features_sequences, counts)),
+  tar_target(features, tidy_features(features_sequences, counts_raw)),
 
   # export ----
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
