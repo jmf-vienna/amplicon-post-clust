@@ -16,23 +16,25 @@ list(
   # config ----
   tar_target(config_file, Sys.getenv("R_CONFIG_FILE", "config.yaml"), format = "file"),
   tar_target(config, config::get(config = Sys.getenv("TAR_PROJECT", "default"), file = config_file)),
-  tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
-  tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
-  tar_target(count_var, config |> pluck("annotation", "feature id", "variable name", .default = "Count")),
 
-  ## paths ----
+  # paths ----
   tar_target(input_path, config |> pluck("path", "clusters", .default = "data")),
   tar_target(output_path, config |> pluck("path", "data", .default = "data")),
 
   # counts ----
   tar_target(counts_matrix_file, find_one_file(input_path, "*.tsv"), format = "file"),
   tar_target(counts_matrix, read_tsv(counts_matrix_file)),
-  tar_target(counts, counts_matrix |> tidy_counts_matrix(sample_id_var, feature_id_var, count_var)),
-  tar_target(counts_file, counts |> trim_counts(count_var) |> write_tsv(path(output_path, "counts", ext = "tsv"))),
+  tar_target(counts, counts_matrix |> tidy_counts_matrix()),
 
-  # features
+  # features ----
   tar_target(features_sequences_file, find_one_file(input_path, "*.fna"), format = "file"),
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
-  tar_target(features, tidy_features(features_sequences, feature_id_var)),
-  tar_target(features_file, features |> trim_features() |> write_tsv(path(output_path, "features", ext = "tsv")))
+  tar_target(features, tidy_features(features_sequences)),
+
+  # export ----
+  tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
+  tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
+  tar_target(count_var, config |> pluck("annotation", "feature id", "variable name", .default = "Count")),
+  tar_target(counts_file, counts |> trim_counts(feature_id_var, sample_id_var, count_var) |> write_tsv(path(output_path, "counts", ext = "tsv"))),
+  tar_target(features_file, features |> trim_features(feature_id_var) |> write_tsv(path(output_path, "features", ext = "tsv")))
 )

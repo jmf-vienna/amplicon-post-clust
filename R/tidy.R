@@ -1,30 +1,31 @@
-tidy_counts_matrix <- function(counts_matrix, sample_id_var, feature_id_var, count_var) {
+tidy_counts_matrix <- function(counts_matrix) {
   counts <-
     counts_matrix |>
-    rename("{feature_id_var}" := 1L) |>
-    pivot_longer(where(is.numeric), names_to = sample_id_var, values_to = count_var) |>
-    arrange(.data[[feature_id_var]], .data[[sample_id_var]])
+    rename(feature := 1L) |>
+    pivot_longer(!feature, names_to = "sample", values_to = "count") |>
+    arrange(feature, sample)
 
   observations <-
     counts |>
-    count(.data[[feature_id_var]], .data[[sample_id_var]]) |>
+    count(feature, sample) |>
     filter(n != 1L)
 
   if (nrow(observations) > 0L) {
     cli_abort(
-      "Found duplicate observations in the counts matrix. Please make sure each combination of {.var {sample_id_var}} and {.var {feature_id_var}} is unique!"
+      "Found duplicate observations in the counts matrix. Please make sure each combination of sample and feature is unique!"
     )
   }
 
   counts
 }
 
-trim_counts <- function(counts, count_var) {
+trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
   counts |>
-    filter(.data[[count_var]] > 0L)
+    filter(count > 0L) |>
+    rename("{feature_id_var}" := feature, "{sample_id_var}" := sample, "{count_var}" := count)
 }
 
-tidy_features <- function(features_sequences, feature_id_var) {
+tidy_features <- function(features_sequences) {
   loadNamespace("Biostrings")
 
   tibble(
@@ -34,6 +35,6 @@ tidy_features <- function(features_sequences, feature_id_var) {
   )
 }
 
-trim_features <- function(features) {
+trim_features <- function(features, feature_id_var) {
   features
 }
