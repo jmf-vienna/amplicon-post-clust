@@ -28,10 +28,11 @@ list(
   tar_target(counts_matrix_file, find_one_file(input_path, "*.tsv"), format = "file"),
   tar_target(counts_matrix, read_tsv(counts_matrix_file)),
   tar_target(counts, counts_matrix |> tidy_counts_matrix(sample_id_var, feature_id_var, count_var)),
-  tar_target(
-    counts_file,
-    counts |>
-      trim_counts(count_var) |>
-      write_tsv(path(output_path, "counts", ext = "tsv"))
-  )
+  tar_target(counts_file, counts |> trim_counts(count_var) |> write_tsv(path(output_path, "counts", ext = "tsv"))),
+
+  # features
+  tar_target(features_sequences_file, find_one_file(input_path, "*.fna"), format = "file"),
+  tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
+  tar_target(features, tidy_features(features_sequences, feature_id_var)),
+  tar_target(features_file, features |> trim_features() |> write_tsv(path(output_path, "features", ext = "tsv")))
 )

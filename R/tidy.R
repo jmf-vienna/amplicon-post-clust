@@ -23,3 +23,17 @@ trim_counts <- function(counts, count_var) {
   counts |>
     filter(.data[[count_var]] > 0L)
 }
+
+tidy_features <- function(features_sequences, feature_id_var) {
+  loadNamespace("Biostrings")
+
+  tibble(
+    .feature_id = features_sequences |> names() |> str_remove(";.+"),
+    Sequence_length = BiocGenerics::width(features_sequences),
+    Sequence = as.character(features_sequences)
+  )
+}
+
+trim_features <- function(features) {
+  features
+}
