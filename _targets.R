@@ -1,7 +1,7 @@
 library(targets)
 
 tar_option_set(
-  packages = c("cli", "fs", "purrr", "readr", "rlang"),
+  packages = c("cli", "fs", "purrr", "readr", "rlang", "stringr", "vctrs"),
   format = "qs",
 )
 
