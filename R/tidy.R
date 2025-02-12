@@ -3,6 +3,7 @@ tidy_counts_matrix <- function(counts_matrix) {
     counts_matrix |>
     rename(feature := 1L) |>
     pivot_longer(!feature, names_to = "sample", values_to = "count") |>
+    mutate(count = count |> as.integer()) |>
     arrange(feature, sample)
 
   observations <-
