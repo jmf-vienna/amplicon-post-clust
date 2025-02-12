@@ -3,7 +3,11 @@ tidy_counts_matrix <- function(counts_matrix) {
     counts_matrix |>
     rename(feature := 1L) |>
     pivot_longer(!feature, names_to = "sample", values_to = "count") |>
-    mutate(count = count |> as.integer()) |>
+    filter(count > 0L) |>
+    mutate(
+      count = count |> as.integer(),
+      orientation = if_else(str_ends(sample, fixed(".R")), "reverse", "forward")
+    ) |>
     arrange(feature, sample)
 
   observations <-
@@ -22,20 +26,30 @@ tidy_counts_matrix <- function(counts_matrix) {
 
 trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
   counts |>
-    filter(count > 0L) |>
     rename("{feature_id_var}" := feature, "{sample_id_var}" := sample, "{count_var}" := count)
 }
 
-tidy_features <- function(features_sequences) {
+tidy_features <- function(features_sequences, counts) {
   loadNamespace("Biostrings")
 
-  tibble(
-    .feature_id = features_sequences |> names() |> str_remove(";.+"),
+  features <- tibble(
+    feature = features_sequences |> names() |> str_remove(";.+"),
     Sequence_length = BiocGenerics::width(features_sequences),
-    Sequence = as.character(features_sequences)
-  )
+    seq = as.character(features_sequences),
+    seq_revcomp = features_sequences |> Biostrings::reverseComplement() |> as.character()
+  ) |>
+    arrange(feature)
+
+  orientation <- counts |> distinct(feature, orientation)
+
+  stopifnot(identical(features[["feature"]], orientation[["feature"]]))
+
+  features |>
+    left_join(orientation, by = "feature") |>
+    mutate(Sequence = if_else(orientation == "reverse", seq_revcomp, seq))
 }
 
 trim_features <- function(features, feature_id_var) {
-  features
+  features |>
+    select(feature, Sequence_length, Sequence, orientation)
 }

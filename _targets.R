@@ -29,7 +29,7 @@ list(
   # features ----
   tar_target(features_sequences_file, find_one_file(input_path, "*.fna"), format = "file"),
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
-  tar_target(features, tidy_features(features_sequences)),
+  tar_target(features, tidy_features(features_sequences, counts)),
 
   # export ----
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
