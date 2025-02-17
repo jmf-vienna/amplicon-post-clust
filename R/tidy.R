@@ -42,12 +42,19 @@ tidy_features <- function(features_sequences, counts_raw) {
   features <- tibble(
     feature = features_sequences |> names() |> str_remove(";.+"),
     Sequence_length = BiocGenerics::width(features_sequences),
-    seq = as.character(features_sequences),
+    seq = features_sequences |> as.character(),
     seq_revcomp = features_sequences |> Biostrings::reverseComplement() |> as.character()
   ) |>
     arrange(feature)
 
   orientation <- counts_raw |> distinct(feature, orientation)
+
+  orientations_by_feature <- orientation |>
+    count(feature) |>
+    dplyr::filter(n > 1L)
+  if (!vec_is_empty(orientations_by_feature)) {
+    cli_abort("Found both orientations for the feature{?s} {.val {orientations_by_feature$feature}}. Please make sure each feature has only one orientation!")
+  }
 
   stopifnot(identical(features[["feature"]], orientation[["feature"]]))
 
