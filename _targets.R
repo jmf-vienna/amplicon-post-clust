@@ -18,7 +18,8 @@ list(
   tar_target(config, config::get(config = Sys.getenv("TAR_PROJECT", "default"), file = config_file)),
 
   # paths ----
-  tar_target(input_path, config |> pluck("path", "clusters", .default = "data")),
+  tar_target(input_path, config |> pluck("path", "clusters", "data", .default = "data")),
+  tar_target(report_path, config |> pluck("path", "clusters", "report", .default = "data")),
   tar_target(output_path, config |> pluck("path", "data", .default = "data")),
 
   # counts ----
@@ -32,10 +33,16 @@ list(
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
   tar_target(features, tidy_features(features_sequences, counts_raw)),
 
+  # samples ----
+  tar_target(samples_report_file, find_one_file(report_path, "*.tsv"), format = "file"),
+  tar_target(samples_report, read_tsv(samples_report_file)),
+  tar_target(samples, tidy_samples_report(samples_report, counts)),
+
   # export ----
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
   tar_target(count_var, config |> pluck("annotation", "feature id", "variable name", .default = "Count")),
   tar_target(counts_file, counts |> trim_counts(feature_id_var, sample_id_var, count_var) |> write_tsv(path(output_path, "counts", ext = "tsv"))),
-  tar_target(features_file, features |> trim_features(feature_id_var) |> write_tsv(path(output_path, "features", ext = "tsv")))
+  tar_target(features_file, features |> trim_features(feature_id_var) |> write_tsv(path(output_path, "features", ext = "tsv"))),
+  tar_target(samples_file, samples |> trim_samples(sample_id_var) |> write_tsv(path(output_path, "samples", ext = "tsv")))
 )

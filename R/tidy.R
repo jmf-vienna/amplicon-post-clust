@@ -72,3 +72,22 @@ trim_features <- function(features, feature_id_var) {
     arrange(new_feature_id) |>
     rename("{feature_id_var}" := new_feature_id)
 }
+
+tidy_samples_report <- function(samples_report, counts) {
+  final <-
+    counts |>
+    group_by(sample) |>
+    summarise(count = sum(count)) |>
+    add_column(phase = "final")
+
+  samples_report |>
+    rename(sample := 1L) |>
+    pivot_longer(!sample, names_to = "phase", values_to = "count") |>
+    mutate(phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()) |>
+    bind_rows(final) |>
+    arrange(sample)
+}
+
+trim_samples <- function(samples, sample_id_var) {
+  samples
+}
