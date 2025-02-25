@@ -45,13 +45,25 @@ list(
   tar_target(sample_plural_name, sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies")),
   tar_target(tool_name, config |> pluck("annotation", "meta", "clustering tool", .default = "unknown tool")),
   tar_target(output_prefix, tool_name |> str_extract("[A-Za-z0-9]+")),
-  tar_target(counts_file, counts |>
-    trim_counts(feature_id_var, sample_id_var) |>
-    write_tsv(path(output_path, str_c(output_prefix, "_counts"), ext = "tsv"))),
-  tar_target(features_file, features |>
-    trim_features(feature_id_var) |>
-    write_tsv(path(output_path, str_c(output_prefix, "_", feature_plural_name), ext = "tsv"))),
-  tar_target(metrics_file, sample_metrics |>
-    trim_sample_metrics(sample_id_var, sample_plural_name, tool_name) |>
-    write_tsv(path(output_path, str_c(output_prefix, "_", sample_plural_name), ext = "tsv")))
+  tar_target(
+    counts_file,
+    counts |>
+      trim_counts(feature_id_var, sample_id_var) |>
+      write_tsv(path(output_path, str_c(output_prefix, "_counts"), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
+    features_file,
+    features |>
+      trim_features(feature_id_var) |>
+      write_tsv(path(output_path, str_c(output_prefix, "_", feature_plural_name), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
+    metrics_file,
+    sample_metrics |>
+      trim_sample_metrics(sample_id_var, sample_plural_name, tool_name) |>
+      write_tsv(path(output_path, str_c(output_prefix, "_", sample_plural_name), ext = "tsv")),
+    format = "file"
+  )
 )
