@@ -95,7 +95,7 @@ trim_sample_metrics <- function(sample_metrics, sample_id_var, tool) {
   sample_metrics |>
     mutate(
       tool = tool,
-      resolution = "sublibraries",
+      resolution = sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies"),
       .before = 1L
     ) |>
     arrange(sample) |>
