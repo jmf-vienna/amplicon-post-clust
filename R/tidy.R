@@ -83,10 +83,12 @@ tidy_sample_metrics <- function(sample_metrics_raw, counts) {
   sample_metrics_raw |>
     dplyr::rename(sample := 1L) |>
     pivot_longer(!sample, names_to = "phase", values_to = "count") |>
-    mutate(phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()) |>
+    mutate(
+      phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()
+    ) |>
     bind_rows(final) |>
     tibble::add_column(
-      state = "crude",
+      state = "crude"
     ) |>
     relocate(phase, sample, count, .after = last_col())
 }
