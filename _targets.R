@@ -42,7 +42,8 @@ list(
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
   tar_target(count_var, config |> pluck("annotation", "feature id", "variable name", .default = "Count")),
+  tar_target(tool, config |> pluck("annotation", "meta", "clustering tool", .default = "unknown tool")),
   tar_target(counts_file, counts |> trim_counts(feature_id_var, sample_id_var, count_var) |> write_tsv(path(output_path, "counts", ext = "tsv"))),
   tar_target(features_file, features |> trim_features(feature_id_var) |> write_tsv(path(output_path, "features", ext = "tsv"))),
-  tar_target(metrics_file, sample_metrics |> trim_sample_metrics(sample_id_var) |> write_tsv(path(output_path, "samples", ext = "tsv")))
+  tar_target(metrics_file, sample_metrics |> trim_sample_metrics(sample_id_var, tool) |> write_tsv(path(output_path, "samples", ext = "tsv")))
 )

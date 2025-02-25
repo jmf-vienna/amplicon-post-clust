@@ -73,7 +73,7 @@ trim_features <- function(features, feature_id_var) {
     rename("{feature_id_var}" := new_feature_id)
 }
 
-tidy_sample_metrics <- function(sample_metrics_raw, counts, tool = NA_character_) {
+tidy_sample_metrics <- function(sample_metrics_raw, counts) {
   final <-
     counts |>
     group_by(sample) |>
@@ -86,17 +86,17 @@ tidy_sample_metrics <- function(sample_metrics_raw, counts, tool = NA_character_
     mutate(phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()) |>
     bind_rows(final) |>
     tibble::add_column(
-      tool = tool,
-      resolution = NA_character_,
       state = "crude",
     ) |>
     relocate(phase, sample, count, .after = last_col())
 }
 
-trim_sample_metrics <- function(sample_metrics, sample_id_var) {
+trim_sample_metrics <- function(sample_metrics, sample_id_var, tool) {
   sample_metrics |>
     mutate(
-      resolution = "sublibraries"
+      tool = tool,
+      resolution = "sublibraries",
+      .before = 1L
     ) |>
     arrange(sample) |>
     rename("{sample_id_var}" := sample)
