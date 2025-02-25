@@ -43,7 +43,7 @@ list(
   tar_target(feature_plural_name, feature_id_var |> str_remove("_?ID$") |> str_c("s")),
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
   tar_target(sample_plural_name, sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies")),
-  tar_target(tool_name, config |> pluck("annotation", "meta", "clustering tool", .default = "unknown tool")),
+  tar_target(tool_name, config |> pluck("annotation", "meta", "clustering tool", .default = "SOME TOOL")),
   tar_target(output_prefix, tool_name |> str_extract("[A-Za-z0-9]+")),
   tar_target(
     counts_file,
