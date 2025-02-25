@@ -93,11 +93,11 @@ tidy_sample_metrics <- function(sample_metrics_raw, counts) {
     relocate(phase, sample, count, .after = last_col())
 }
 
-trim_sample_metrics <- function(sample_metrics, sample_id_var, tool) {
+trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name, tool_name) {
   sample_metrics |>
     mutate(
-      tool = tool,
-      resolution = sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies"),
+      tool = tool_name,
+      resolution = sample_plural_name,
       .before = 1L
     ) |>
     arrange(sample) |>
