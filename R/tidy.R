@@ -89,17 +89,15 @@ tidy_sample_metrics <- function(sample_metrics_raw, counts, tool = NA_character_
       tool = tool,
       resolution = NA_character_,
       state = "crude",
-      sample_id_var = NA_character_
     ) |>
-    relocate(phase, sample_id_var, sample, count, .after = last_col())
+    relocate(phase, sample, count, .after = last_col())
 }
 
-trim_sample_metrics <- function(sample_metrics, sample_id_var_arg) {
+trim_sample_metrics <- function(sample_metrics, sample_id_var) {
   sample_metrics |>
     mutate(
-      resolution = "sublibraries",
-      sample_id_var = sample_id_var_arg
+      resolution = "sublibraries"
     ) |>
     arrange(sample) |>
-    rename(library_id = sample)
+    rename("{sample_id_var}" := sample)
 }
