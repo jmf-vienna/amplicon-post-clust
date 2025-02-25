@@ -33,7 +33,7 @@ trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
   counts |>
     select(new_feature_id, sample, count) |>
     arrange(new_feature_id, sample) |>
-    dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample, "{count_var}" := count)
+    dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample)
 }
 
 tidy_features <- function(features_sequences, counts_raw) {
