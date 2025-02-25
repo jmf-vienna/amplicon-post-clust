@@ -1,7 +1,7 @@
 tidy_counts_matrix <- function(counts_matrix) {
   counts_raw <-
     counts_matrix |>
-    rename(feature := 1L) |>
+    dplyr::rename(feature := 1L) |>
     pivot_longer(!feature, names_to = "sample", values_to = "count") |>
     filter(count > 0L) |>
     mutate(
@@ -33,7 +33,7 @@ trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
   counts |>
     select(new_feature_id, sample, count) |>
     arrange(new_feature_id, sample) |>
-    rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample, "{count_var}" := count)
+    dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample, "{count_var}" := count)
 }
 
 tidy_features <- function(features_sequences, counts_raw) {
@@ -70,7 +70,7 @@ trim_features <- function(features, feature_id_var) {
   features |>
     distinct(new_feature_id, Sequence_length, Sequence) |>
     arrange(new_feature_id) |>
-    rename("{feature_id_var}" := new_feature_id)
+    dplyr::rename("{feature_id_var}" := new_feature_id)
 }
 
 tidy_sample_metrics <- function(sample_metrics_raw, counts) {
@@ -81,7 +81,7 @@ tidy_sample_metrics <- function(sample_metrics_raw, counts) {
     add_column(phase = "final")
 
   sample_metrics_raw |>
-    rename(sample := 1L) |>
+    dplyr::rename(sample := 1L) |>
     pivot_longer(!sample, names_to = "phase", values_to = "count") |>
     mutate(phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()) |>
     bind_rows(final) |>
@@ -99,5 +99,5 @@ trim_sample_metrics <- function(sample_metrics, sample_id_var, tool) {
       .before = 1L
     ) |>
     arrange(sample) |>
-    rename("{sample_id_var}" := sample)
+    dplyr::rename("{sample_id_var}" := sample)
 }
