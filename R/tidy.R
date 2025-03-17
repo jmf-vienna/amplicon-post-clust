@@ -1,4 +1,4 @@
-tidy_counts_matrix <- function(counts_matrix) {
+tidy_counts_matrix <- function(counts_matrix, auto_reverse_complement) {
   counts_raw <-
     counts_matrix |>
     dplyr::rename(feature := 1L) |>
@@ -6,7 +6,7 @@ tidy_counts_matrix <- function(counts_matrix) {
     filter(count > 0L) |>
     mutate(
       count = count |> as.integer(),
-      orientation = if_else(str_ends(sample, fixed(".R")), "reverse", "forward")
+      orientation = if_else(auto_reverse_complement & str_ends(sample, fixed(".R")), "reverse", "forward")
     ) |>
     arrange(feature, sample)
 

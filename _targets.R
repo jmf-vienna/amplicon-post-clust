@@ -16,6 +16,7 @@ list(
   # config ----
   tar_target(config_file, Sys.getenv("R_CONFIG_FILE", "config.yaml"), format = "file"),
   tar_target(config, config::get(config = Sys.getenv("TAR_PROJECT", "default"), file = config_file)),
+  tar_target(auto_reverse_complement, config |> pluck("auto reverse complement", .default = FALSE)),
 
   # paths ----
   tar_target(input_path, config |> pluck("path", "clusters", "data", .default = "data")),
@@ -25,7 +26,7 @@ list(
   # counts ----
   tar_target(counts_matrix_file, find_one_file(input_path, "*.tsv"), format = "file"),
   tar_target(counts_matrix, read_tsv(counts_matrix_file)),
-  tar_target(counts_raw, counts_matrix |> tidy_counts_matrix()),
+  tar_target(counts_raw, counts_matrix |> tidy_counts_matrix(auto_reverse_complement)),
   tar_target(counts, counts_raw |> tidy_counts(features)),
 
   # features ----
