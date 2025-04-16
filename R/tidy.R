@@ -31,21 +31,33 @@ trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
     dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample)
 }
 
-tidy_features <- function(features_sequences, counts_raw) {
+tidy_features <- function(features_sequences, counts_raw, feature_id_prefix = "OTU") {
   loadNamespace("Biostrings")
 
-  tibble(
-    feature = features_sequences |> names() |> str_remove(";.+"),
-    Sequence_length = BiocGenerics::width(features_sequences),
-    Sequence = features_sequences |> as.character(),
-    new_feature_id = Sequence |> openssl::sha1()
-  ) |>
-    arrange(feature)
+  features <-
+    tibble(
+      feature = features_sequences |> names() |> str_remove(";.+"),
+      Sequence_length = BiocGenerics::width(features_sequences),
+      Sequence = features_sequences |> as.character(),
+      sha1 = Sequence |> openssl::sha1(),
+      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16) %>% Rmpfr::formatMpfr(base = 36, drop0trailing = TRUE),
+      new_feature_id = str_c(
+        feature_id_prefix, "_",
+        str_sub(sha1base36, 1, 3), "_",
+        str_sub(sha1base36, 4, 6), "_",
+        str_sub(sha1base36, 7, 9)
+      )
+    )
+
+  # Assert that the new feature IDs are unique
+  features |> pull(new_feature_id) |> anyDuplicated() |> identical(0L) |> stopifnot()
+
+  features
 }
 
 trim_features <- function(features, feature_id_var) {
   features |>
-    distinct(new_feature_id, Sequence_length, Sequence) |>
+    distinct(new_feature_id, Sequence_length, Sequence, sha1, sha1base36) |>
     arrange(new_feature_id) |>
     dplyr::rename("{feature_id_var}" := new_feature_id)
 }
