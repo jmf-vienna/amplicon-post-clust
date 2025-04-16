@@ -22,20 +22,21 @@ list(
   tar_target(input_path, config |> pluck("path", "clusters", "data", .default = "data")),
   tar_target(metrics_path, config |> pluck("path", "clusters", "metrics", .default = "data")),
   tar_target(output_path, config |> pluck("path", "data", .default = "data")),
+  tar_target(path_glob, config |> pluck("path", "clusters", "filter", .default = "*")),
 
   # counts ----
-  tar_target(counts_matrix_file, find_one_file(input_path, "*.tsv"), format = "file"),
+  tar_target(counts_matrix_file, find_one_file(input_path, str_c(path_glob, ".tsv")), format = "file"),
   tar_target(counts_matrix, read_tsv(counts_matrix_file)),
   tar_target(counts_raw, counts_matrix |> tidy_counts_matrix(auto_reverse_complement)),
   tar_target(counts, counts_raw |> tidy_counts(features)),
 
   # features ----
-  tar_target(features_sequences_file, find_one_file(input_path, "*.fna"), format = "file"),
+  tar_target(features_sequences_file, find_one_file(input_path, str_c(path_glob, ".fna")), format = "file"),
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
   tar_target(features, tidy_features(features_sequences, counts_raw)),
 
   # samples ----
-  tar_target(sample_metrics_file, find_one_file(metrics_path, "*.tsv"), format = "file"),
+  tar_target(sample_metrics_file, find_one_file(metrics_path, str_c(path_glob, ".tsv")), format = "file"),
   tar_target(sample_metrics_raw, read_tsv(sample_metrics_file)),
   tar_target(sample_metrics, tidy_sample_metrics(sample_metrics_raw, counts)),
 
