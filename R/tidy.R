@@ -1,19 +1,14 @@
-tidy_counts_matrix <- function(counts_matrix, auto_reverse_complement) {
+tidy_counts_table <- function(counts_table) {
   counts_raw <-
-    counts_matrix |>
-    dplyr::rename(feature := 1L) |>
-    pivot_longer(!feature, names_to = "sample", values_to = "count") |>
-    filter(count > 0L) |>
-    mutate(
-      count = count |> as.integer(),
-      orientation = if_else(auto_reverse_complement & str_ends(sample, fixed(".R")), "reverse", "forward")
-    ) |>
+    counts_table |>
+    dplyr::select(feature, sample, count) |>
+    mutate(count = as.integer(count)) |>
     arrange(feature, sample)
 
   observations <-
     counts_raw |>
     count(feature, sample) |>
-    filter(n != 1L)
+    dplyr::filter(n != 1L)
 
   if (nrow(observations) > 0L) {
     cli_abort(
@@ -26,7 +21,7 @@ tidy_counts_matrix <- function(counts_matrix, auto_reverse_complement) {
 
 tidy_counts <- function(counts_raw, features) {
   counts_raw |>
-    left_join(features |> select(feature, orientation, new_feature_id), by = join_by(feature, orientation))
+    left_join(features |> select(feature, new_feature_id), by = join_by(feature))
 }
 
 trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
@@ -39,31 +34,13 @@ trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
 tidy_features <- function(features_sequences, counts_raw) {
   loadNamespace("Biostrings")
 
-  features <- tibble(
+  tibble(
     feature = features_sequences |> names() |> str_remove(";.+"),
     Sequence_length = BiocGenerics::width(features_sequences),
-    seq = features_sequences |> as.character(),
-    seq_revcomp = features_sequences |> Biostrings::reverseComplement() |> as.character()
+    Sequence = features_sequences |> as.character(),
+    new_feature_id = Sequence |> openssl::sha1()
   ) |>
     arrange(feature)
-
-  orientation <- counts_raw |> distinct(feature, orientation)
-
-  orientations_by_feature <- orientation |>
-    count(feature) |>
-    dplyr::filter(n > 1L)
-  if (!vec_is_empty(orientations_by_feature)) {
-    cli_abort("Found both orientations for the feature{?s} {.val {orientations_by_feature$feature}}. Please make sure each feature has only one orientation!")
-  }
-
-  stopifnot(identical(features[["feature"]], orientation[["feature"]]))
-
-  features |>
-    left_join(orientation, by = "feature") |>
-    mutate(
-      Sequence = if_else(orientation == "reverse", seq_revcomp, seq),
-      new_feature_id = Sequence |> openssl::sha1()
-    )
 }
 
 trim_features <- function(features, feature_id_var) {
@@ -74,31 +51,28 @@ trim_features <- function(features, feature_id_var) {
 }
 
 tidy_sample_metrics <- function(sample_metrics_raw, counts) {
+  base_data <-
+    sample_metrics_raw |>
+    select(!c(phase, count)) |>
+    distinct()
+
   final <-
     counts |>
     group_by(sample) |>
     summarise(count = sum(count)) |>
-    add_column(phase = "final")
+    add_column(phase = "final") |>
+    left_join(base_data, by = "sample")
 
   sample_metrics_raw |>
-    dplyr::rename(sample := 1L) |>
-    pivot_longer(!sample, names_to = "phase", values_to = "count") |>
-    mutate(
-      phase = phase |> str_to_lower() |> str_replace_all("[^a-z]", " ") |> str_remove("reads?") |> str_squish()
-    ) |>
-    bind_rows(final) |>
-    tibble::add_column(
-      state = "crude"
-    ) |>
-    relocate(phase, sample, count, .after = last_col())
+    bind_rows(final)
 }
 
-trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name, tool_name) {
+trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {
   sample_metrics |>
     mutate(
-      tool = tool_name,
       resolution = sample_plural_name,
-      .before = 1L
+      state = "crude",
+      .after = "tool"
     ) |>
     arrange(sample) |>
     dplyr::rename("{sample_id_var}" := sample)
