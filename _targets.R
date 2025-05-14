@@ -22,6 +22,9 @@ list(
   tar_target(output_path, config |> pluck("path", "data", .default = "data")),
   tar_target(path_glob, config |> pluck("path", "clusters", "filter", .default = "*")),
 
+  # settings ----
+  tar_target(eepm_max, config |> pluck("filter", "eepm", .default = Inf)),
+
   # counts ----
   tar_target(counts_table_file, find_one_file(input_path, str_c(path_glob, ".tsv")), format = "file"),
   tar_target(counts_table, read_tsv(counts_table_file)),
@@ -43,6 +46,10 @@ list(
   tar_target(sample_metrics_raw, read_tsv(sample_metrics_file)),
   tar_target(sample_metrics, tidy_sample_metrics(sample_metrics_raw, counts)),
 
+  # filter
+  tar_target(filtered_features, filter_features(features, eepm_max)),
+  tar_target(filtered_counts, filter_counts(counts, filtered_features)),
+
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
   tar_target(feature_plural_name, feature_id_var |> str_remove("_?ID$") |> str_c("s")),
@@ -51,14 +58,14 @@ list(
   tar_target(output_prefix, sample_metrics |> pluck("tool", 1L, .default = "some") |> str_extract("[A-Za-z0-9]+")),
   tar_target(
     counts_file,
-    counts |>
+    filtered_counts |>
       trim_counts(feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     features_file,
-    features |>
+    filtered_features |>
       trim_features(feature_id_var) |>
       write_tsv(path(output_path, str_c(output_prefix, "_", feature_plural_name), ext = "tsv")),
     format = "file"
