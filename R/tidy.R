@@ -89,14 +89,14 @@ tidy_sample_metrics <- function(previous_sample_metrics_raw, counts, filtered_co
   unfiltered <-
     counts |>
     group_by(sample) |>
-    summarise(count = sum(count)) |>
+    summarise(count = sum(count), features = dplyr::n()) |>
     add_column(phase = "clustering final") |>
     left_join(base_data, by = "sample")
 
   filtered <-
     filtered_counts |>
     group_by(sample) |>
-    summarise(count = sum(count)) |>
+    summarise(count = sum(count), features = dplyr::n()) |>
     add_column(phase = "expected errors filtered") |>
     left_join(base_data, by = "sample")
 
