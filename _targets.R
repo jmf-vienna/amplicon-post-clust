@@ -31,7 +31,12 @@ list(
   # features ----
   tar_target(features_sequences_file, find_one_file(input_path, str_c(path_glob, ".fna")), format = "file"),
   tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
-  tar_target(features, tidy_features(features_sequences, counts_raw)),
+  tar_target(features, tidy_features(features_sequences, counts_raw, feature_quality)),
+
+  ## expected errors ----
+  tar_target(expected_errors_file, find_one_file(input_path, "*expected_errors*.tsv"), format = "file"),
+  tar_target(expected_errors_table, read_tsv(expected_errors_file)),
+  tar_target(feature_quality, expected_errors_table |> tidy_expected_errors() |> summarise_expected_errors()),
 
   # samples ----
   tar_target(sample_metrics_file, find_one_file(input_path, "*metrics.tsv"), format = "file"),

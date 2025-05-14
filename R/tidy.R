@@ -31,7 +31,7 @@ trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
     dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample)
 }
 
-tidy_features <- function(features_sequences, counts_raw, feature_id_prefix = "OTU") {
+tidy_features <- function(features_sequences, counts_raw, feature_quality, feature_id_prefix = "OTU") {
   loadNamespace("Biostrings")
 
   features <-
@@ -47,19 +47,37 @@ tidy_features <- function(features_sequences, counts_raw, feature_id_prefix = "O
         str_sub(sha1base36, 4, 6), "_",
         str_sub(sha1base36, 7, 9)
       )
-    )
+    ) |>
+    left_join(feature_quality)
 
   # Assert that the new feature IDs are unique
-  features |> pull(new_feature_id) |> anyDuplicated() |> identical(0L) |> stopifnot()
+  features |>
+    pull(new_feature_id) |>
+    anyDuplicated() |>
+    identical(0L) |>
+    stopifnot()
 
   features
 }
 
 trim_features <- function(features, feature_id_var) {
   features |>
-    distinct(new_feature_id, Sequence_length, Sequence, sha1, sha1base36) |>
+    distinct(new_feature_id, quality_min_eepm, Sequence_length, Sequence, sha1, sha1base36) |>
     arrange(new_feature_id) |>
     dplyr::rename("{feature_id_var}" := new_feature_id)
+}
+
+tidy_expected_errors <- function(expected_errors_table) {
+  expected_errors_table |>
+    rename(feature = sha1)
+}
+
+summarise_expected_errors <- function(expected_errors_table) {
+  expected_errors_table |>
+    group_by(feature) |>
+    summarise(
+      quality_min_eepm = min(expected_errors / length * 1e6) |> round(3)
+    )
 }
 
 tidy_sample_metrics <- function(sample_metrics_raw, counts) {
