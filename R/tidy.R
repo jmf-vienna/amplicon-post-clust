@@ -80,21 +80,29 @@ summarise_expected_errors <- function(expected_errors_table) {
     )
 }
 
-tidy_sample_metrics <- function(sample_metrics_raw, counts) {
+tidy_sample_metrics <- function(previous_sample_metrics_raw, counts, filtered_counts) {
   base_data <-
-    sample_metrics_raw |>
+    previous_sample_metrics_raw |>
     select(!c(phase, count)) |>
     distinct()
 
-  final <-
+  unfiltered <-
     counts |>
     group_by(sample) |>
     summarise(count = sum(count)) |>
-    add_column(phase = "final") |>
+    add_column(phase = "clustering final") |>
     left_join(base_data, by = "sample")
 
-  sample_metrics_raw |>
-    bind_rows(final)
+  filtered <-
+    filtered_counts |>
+    group_by(sample) |>
+    summarise(count = sum(count)) |>
+    add_column(phase = "expected errors filtered") |>
+    left_join(base_data, by = "sample")
+
+  previous_sample_metrics_raw |>
+    bind_rows(unfiltered) |>
+    bind_rows(filtered)
 }
 
 trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {

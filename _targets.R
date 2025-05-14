@@ -42,9 +42,9 @@ list(
   tar_target(feature_quality, expected_errors_table |> tidy_expected_errors() |> summarise_expected_errors()),
 
   # samples ----
-  tar_target(sample_metrics_file, find_one_file(input_path, "*metrics.tsv"), format = "file"),
-  tar_target(sample_metrics_raw, read_tsv(sample_metrics_file)),
-  tar_target(sample_metrics, tidy_sample_metrics(sample_metrics_raw, counts)),
+  tar_target(previous_sample_metrics_file, find_one_file(input_path, "*metrics.tsv"), format = "file"),
+  tar_target(previous_sample_metrics_raw, read_tsv(previous_sample_metrics_file)),
+  tar_target(sample_metrics, tidy_sample_metrics(previous_sample_metrics_raw, counts, filtered_counts)),
 
   # filter
   tar_target(filtered_features, filter_features(features, eepm_max)),
