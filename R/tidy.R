@@ -40,12 +40,12 @@ tidy_features <- function(features_sequences, counts_raw, feature_quality, featu
       Sequence_length = BiocGenerics::width(features_sequences),
       Sequence = features_sequences |> as.character(),
       sha1 = Sequence |> openssl::sha1(),
-      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16) %>% Rmpfr::formatMpfr(base = 36, drop0trailing = TRUE),
+      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16L) |> Rmpfr::formatMpfr(base = 36L, drop0trailing = TRUE),
       new_feature_id = str_c(
         feature_id_prefix, "_",
-        str_sub(sha1base36, 1, 3), "_",
-        str_sub(sha1base36, 4, 6), "_",
-        str_sub(sha1base36, 7, 9)
+        str_sub(sha1base36, 1L, 3L), "_",
+        str_sub(sha1base36, 4L, 6L), "_",
+        str_sub(sha1base36, 7L, 9L)
       )
     ) |>
     left_join(feature_quality)
@@ -76,7 +76,7 @@ summarise_expected_errors <- function(expected_errors_table) {
   expected_errors_table |>
     group_by(feature) |>
     summarise(
-      quality_min_eepm = min(expected_errors / length * 1e6) |> round(3)
+      quality_min_eepm = min(expected_errors / length * 1e6L) |> round(3L)
     )
 }
 
