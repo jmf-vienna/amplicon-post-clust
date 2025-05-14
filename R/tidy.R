@@ -48,7 +48,7 @@ tidy_features <- function(features_sequences, counts_raw, feature_quality, featu
         str_sub(sha1base36, 7L, 9L)
       )
     ) |>
-    left_join(feature_quality)
+    left_join(feature_quality, by = "feature")
 
   # Assert that the new feature IDs are unique
   features |>
