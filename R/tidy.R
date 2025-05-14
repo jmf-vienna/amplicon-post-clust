@@ -62,6 +62,7 @@ tidy_features <- function(features_sequences, counts_raw, feature_quality, featu
 
 trim_features <- function(features, feature_id_var) {
   features |>
+    mutate(quality_min_eepm = round(quality_min_eepm, 3L)) |>
     distinct(new_feature_id, quality_min_eepm, Sequence_length, Sequence, sha1, sha1base36) |>
     arrange(new_feature_id) |>
     dplyr::rename("{feature_id_var}" := new_feature_id)
@@ -75,9 +76,7 @@ tidy_expected_errors <- function(expected_errors_table) {
 summarise_expected_errors <- function(expected_errors_table) {
   expected_errors_table |>
     group_by(feature) |>
-    summarise(
-      quality_min_eepm = min(expected_errors / length * 1e6L) |> round(3L)
-    )
+    summarise(quality_min_eepm = min(expected_errors / length * 1e6L))
 }
 
 tidy_sample_metrics <- function(previous_sample_metrics_raw, counts, filtered_counts) {
