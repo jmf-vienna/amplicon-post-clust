@@ -25,56 +25,56 @@ list(
   # settings ----
   tar_target(eepm_max, config |> pluck("filter", "eepm", .default = Inf)),
 
+  ## reads ----
+  tar_target(reads_file, find_one_file(input_path, str_c(path_glob, "reads.tsv")), format = "file"),
+  tar_target(reads_table, read_tsv(reads_file)),
+  tar_target(feature_quality, reads_table |> tidy_expected_errors() |> summarise_expected_errors()),
+
+  ## sequences ----
+  tar_target(sequences_file, find_one_file(input_path, str_c(path_glob, "sequences.tsv")), format = "file"),
+  tar_target(sequences_table, sequences_file |> read_tsv() |> tidy_sequences()),
+  tar_target(feature_ids, make_feature_ids(sequences_table)),
+
   # counts ----
-  tar_target(counts_table_file, find_one_file(input_path, str_c(path_glob, ".tsv")), format = "file"),
-  tar_target(counts_table, read_tsv(counts_table_file)),
-  tar_target(counts_raw, tidy_counts_table(counts_table)),
-  tar_target(counts, tidy_counts(counts_raw, features)),
+  tar_target(solitary_stats_file, find_one_file(input_path, str_c(path_glob, "solitary*_stats.tsv")), format = "file"),
+  tar_target(solitary_stats, solitary_stats_file |> read_tsv() |> tidy_counts_table()),
+  tar_target(raw_counts, tidy_counts(solitary_stats, feature_ids)),
 
-  # features ----
-  tar_target(features_sequences_file, find_one_file(input_path, str_c(path_glob, ".fna")), format = "file"),
-  tar_target(features_sequences, Biostrings::readDNAStringSet(features_sequences_file)),
-  tar_target(features, tidy_features(features_sequences, counts_raw, feature_quality)),
+  # filters
+  tar_target(keep_features, filter_features(feature_quality, eepm_max)),
+  tar_target(final_counts, filter_counts(raw_counts, keep_features)),
+  tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_counts |> pull(feature))),
 
-  ## expected errors ----
-  tar_target(expected_errors_file, find_one_file(input_path, "*expected_errors*.tsv"), format = "file"),
-  tar_target(expected_errors_table, read_tsv(expected_errors_file)),
-  tar_target(feature_quality, expected_errors_table |> tidy_expected_errors() |> summarise_expected_errors()),
-
-  # samples ----
-  tar_target(previous_sample_metrics_file, find_one_file(input_path, "*metrics.tsv"), format = "file"),
-  tar_target(previous_sample_metrics_raw, read_tsv(previous_sample_metrics_file)),
-  tar_target(sample_metrics, tidy_sample_metrics(previous_sample_metrics_raw, counts, filtered_counts)),
-
-  # filter
-  tar_target(filtered_features, filter_features(features, eepm_max)),
-  tar_target(filtered_counts, filter_counts(counts, filtered_features)),
+  # metrics ----
+  tar_target(sample_metrics, make_sample_metrics(raw_counts, final_counts)),
 
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
   tar_target(feature_plural_name, feature_id_var |> str_remove("_?ID$") |> str_c("s")),
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
   tar_target(sample_plural_name, sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies")),
-  tar_target(output_prefix, sample_metrics |> pluck("tool", 1L, .default = "some") |> str_extract("[A-Za-z0-9]+")),
+  tar_target(solitary_output_prefix, solitary_stats_file |> str_remove("_stats[.]tsv$") |> str_extract("[A-Za-z0-9_]+$")),
+  tar_target(generic_output_prefix, solitary_output_prefix |> str_extract("[A-Za-z0-9]+$")),
+  tar_target(tool, solitary_output_prefix |> str_replace_all(fixed("_"), " ")),
   tar_target(
     counts_file,
-    filtered_counts |>
+    final_counts |>
       trim_counts(feature_id_var, sample_id_var) |>
-      write_tsv(path(output_path, str_c(output_prefix, "_counts"), ext = "tsv")),
+      write_tsv(path(output_path, str_c(solitary_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     features_file,
-    filtered_features |>
+    final_features |>
       trim_features(feature_id_var) |>
-      write_tsv(path(output_path, str_c(output_prefix, "_", feature_plural_name), ext = "tsv")),
+      write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     metrics_file,
     sample_metrics |>
-      trim_sample_metrics(sample_id_var, sample_plural_name) |>
-      write_tsv(path(output_path, str_c(output_prefix, "_", sample_plural_name), ext = "tsv")),
+      trim_sample_metrics(tool, sample_id_var, sample_plural_name) |>
+      write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   )
 )

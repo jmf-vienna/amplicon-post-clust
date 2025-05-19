@@ -1,3 +1,42 @@
+assert_unique <- function(data, var) {
+  data |>
+    pull({{ var }}) |>
+    anyDuplicated() |>
+    identical(0L) |>
+    stopifnot()
+}
+
+tidy_sequences <- function(sequences_table) {
+  sequences_table |>
+    mutate(
+      sequence_length = str_length(sequence)
+    )
+}
+
+make_feature_ids <- function(sequences_table, feature_id_prefix = "OTU") {
+  # check for duplicate sequences
+  assert_unique(sequences_table, sequence)
+
+  feature_ids <-
+    sequences_table |>
+    mutate(
+      # sha1 = sequence |> openssl::sha1(), # handled by vsearch for now
+      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16L) |> Rmpfr::formatMpfr(base = 36L, drop0trailing = TRUE),
+      new_feature_id = str_c(
+        feature_id_prefix, "_",
+        str_sub(sha1base36, 1L, 3L), "_",
+        str_sub(sha1base36, 4L, 6L), "_",
+        str_sub(sha1base36, 7L, 9L)
+      ),
+      .keep = "used"
+    )
+
+  # Assert that the new feature IDs are unique
+  assert_unique(feature_ids, new_feature_id)
+
+  feature_ids
+}
+
 tidy_counts_table <- function(counts_table) {
   counts_raw <-
     counts_table |>
@@ -19,53 +58,9 @@ tidy_counts_table <- function(counts_table) {
   counts_raw
 }
 
-tidy_counts <- function(counts_raw, features) {
+tidy_counts <- function(counts_raw, feature_ids) {
   counts_raw |>
-    left_join(features |> select(feature, new_feature_id), by = join_by(feature))
-}
-
-trim_counts <- function(counts, feature_id_var, sample_id_var, count_var) {
-  counts |>
-    select(new_feature_id, sample, count) |>
-    arrange(new_feature_id, sample) |>
-    dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample)
-}
-
-tidy_features <- function(features_sequences, counts_raw, feature_quality, feature_id_prefix = "OTU") {
-  loadNamespace("Biostrings")
-
-  features <-
-    tibble(
-      feature = features_sequences |> names() |> str_remove(";.+"),
-      Sequence_length = BiocGenerics::width(features_sequences),
-      Sequence = features_sequences |> as.character(),
-      sha1 = Sequence |> openssl::sha1(),
-      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16L) |> Rmpfr::formatMpfr(base = 36L, drop0trailing = TRUE),
-      new_feature_id = str_c(
-        feature_id_prefix, "_",
-        str_sub(sha1base36, 1L, 3L), "_",
-        str_sub(sha1base36, 4L, 6L), "_",
-        str_sub(sha1base36, 7L, 9L)
-      )
-    ) |>
-    left_join(feature_quality, by = "feature")
-
-  # Assert that the new feature IDs are unique
-  features |>
-    pull(new_feature_id) |>
-    anyDuplicated() |>
-    identical(0L) |>
-    stopifnot()
-
-  features
-}
-
-trim_features <- function(features, feature_id_var) {
-  features |>
-    mutate(quality_min_eepm = round(quality_min_eepm, 3L)) |>
-    distinct(new_feature_id, quality_min_eepm, Sequence_length, Sequence, sha1, sha1base36) |>
-    arrange(new_feature_id) |>
-    dplyr::rename("{feature_id_var}" := new_feature_id)
+    left_join(feature_ids |> select(feature = sha1, new_feature_id), by = join_by(feature))
 }
 
 tidy_expected_errors <- function(expected_errors_table) {
@@ -77,40 +72,4 @@ summarise_expected_errors <- function(expected_errors_table) {
   expected_errors_table |>
     group_by(feature) |>
     summarise(quality_min_eepm = min(expected_errors / length * 1e6L))
-}
-
-tidy_sample_metrics <- function(previous_sample_metrics_raw, counts, filtered_counts) {
-  base_data <-
-    previous_sample_metrics_raw |>
-    select(!c(phase, count)) |>
-    distinct()
-
-  unfiltered <-
-    counts |>
-    group_by(sample) |>
-    summarise(count = sum(count), features = dplyr::n()) |>
-    add_column(phase = "clustering final") |>
-    left_join(base_data, by = "sample")
-
-  filtered <-
-    filtered_counts |>
-    group_by(sample) |>
-    summarise(count = sum(count), features = dplyr::n()) |>
-    add_column(phase = "expected errors filtered") |>
-    left_join(base_data, by = "sample")
-
-  previous_sample_metrics_raw |>
-    bind_rows(unfiltered) |>
-    bind_rows(filtered)
-}
-
-trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {
-  sample_metrics |>
-    mutate(
-      resolution = sample_plural_name,
-      state = "crude",
-      .after = "tool"
-    ) |>
-    arrange(sample) |>
-    dplyr::rename("{sample_id_var}" := sample)
 }
