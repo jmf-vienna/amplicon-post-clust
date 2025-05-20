@@ -22,5 +22,5 @@ make_sample_metrics <- function(raw_counts, final_counts) {
     final_counts |> add_column(phase = "expected errors filtered", .before = 1L)
   ) |>
     group_by(phase, sample) |>
-    summarise(count = sum(count), features = dplyr::n())
+    summarise(count = sum(count), features = dplyr::n(), .groups = "drop")
 }
