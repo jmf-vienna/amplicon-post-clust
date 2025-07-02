@@ -38,15 +38,15 @@ list(
   # counts ----
   tar_target(solitary_stats_file, find_one_file(input_path, str_c(path_glob, "solitary*_stats.tsv")), format = "file"),
   tar_target(solitary_stats, solitary_stats_file |> read_tsv() |> tidy_counts_table()),
-  tar_target(raw_counts, tidy_counts(solitary_stats, feature_ids)),
+  tar_target(solitary_raw_counts, tidy_counts(solitary_stats, feature_ids)),
 
   # filters
   tar_target(keep_features, filter_features(feature_quality, eepm_max)),
-  tar_target(final_counts, filter_counts(raw_counts, keep_features)),
-  tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_counts |> pull(feature))),
+  tar_target(solitary_final_counts, filter_counts(solitary_raw_counts, keep_features)),
+  tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, solitary_final_counts |> pull(feature))),
 
   # metrics ----
-  tar_target(sample_metrics, make_sample_metrics(raw_counts, final_counts)),
+  tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_final_counts)),
 
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
@@ -57,8 +57,8 @@ list(
   tar_target(generic_output_prefix, solitary_output_prefix |> str_extract("[A-Za-z0-9]+$")),
   tar_target(tool, solitary_output_prefix |> str_replace_all(fixed("_"), " ")),
   tar_target(
-    counts_file,
-    final_counts |>
+    solitary_counts_file,
+    solitary_final_counts |>
       trim_counts(feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
@@ -71,8 +71,8 @@ list(
     format = "file"
   ),
   tar_target(
-    metrics_file,
-    sample_metrics |>
+    solitary_metrics_file,
+    solitary_sample_metrics |>
       trim_sample_metrics(tool, sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
