@@ -55,7 +55,6 @@ list(
   tar_target(sample_plural_name, sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies")),
   tar_target(solitary_output_prefix, solitary_stats_file |> str_remove("_stats[.]tsv$") |> str_extract("[A-Za-z0-9_]+$")),
   tar_target(generic_output_prefix, solitary_output_prefix |> str_extract("[A-Za-z0-9]+$")),
-  tar_target(tool, solitary_output_prefix |> str_replace_all(fixed("_"), " ")),
   tar_target(
     solitary_counts_file,
     solitary_final_counts |>
@@ -64,17 +63,17 @@ list(
     format = "file"
   ),
   tar_target(
+    solitary_metrics_file,
+    solitary_sample_metrics |>
+      trim_sample_metrics(str_replace_all(solitary_output_prefix, fixed("_"), " "), sample_id_var, sample_plural_name) |>
+      write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
     features_file,
     final_features |>
       trim_features(feature_id_var) |>
       write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name), ext = "tsv")),
-    format = "file"
-  ),
-  tar_target(
-    solitary_metrics_file,
-    solitary_sample_metrics |>
-      trim_sample_metrics(tool, sample_id_var, sample_plural_name) |>
-      write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   )
 )
