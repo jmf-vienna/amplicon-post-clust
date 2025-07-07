@@ -5,8 +5,21 @@ filter_features <- function(feature_quality, eepm_max) {
 }
 
 filter_counts <- function(counts, keep_features) {
-  counts |>
+  res <-
+    counts |>
     dplyr::filter(feature %in% keep_features)
+
+  before <-
+    counts |>
+    pull(feature) |>
+    vec_unique_count()
+  after <-
+    res |>
+    pull(feature) |>
+    vec_unique_count()
+  cli_alert_success("filtered {.val {before}} features down to {.val {after}} features")
+
+  res
 }
 
 make_final_features <- function(sequences_table, feature_ids, feature_quality, keep_features) {
