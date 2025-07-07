@@ -36,17 +36,25 @@ list(
   tar_target(feature_ids, make_feature_ids(sequences_table)),
 
   # counts ----
+  ## solitary ----
   tar_target(solitary_stats_file, find_one_file(input_path, str_c(path_glob, "solitary*_stats.tsv")), format = "file"),
   tar_target(solitary_stats, solitary_stats_file |> read_tsv() |> tidy_counts_table()),
   tar_target(solitary_raw_counts, tidy_counts(solitary_stats, feature_ids)),
+  ## pooled ----
+  tar_target(pooled_cluster_members_file, find_one_file(input_path, str_c(path_glob, "pooled*_cluster_members.tsv")), format = "file"),
+  tar_target(pooled_cluster_members, pooled_cluster_members_file |> read_tsv() |> tidy_cluster_members()),
+  tar_target(pooled_raw_counts, make_pooled_counts(pooled_cluster_members, reads_table, feature_ids)),
 
   # filters
   tar_target(keep_features, filter_features(feature_quality, eepm_max)),
   tar_target(solitary_final_counts, filter_counts(solitary_raw_counts, keep_features)),
-  tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, solitary_final_counts |> pull(feature))),
+  tar_target(pooled_final_counts, filter_counts(pooled_raw_counts, keep_features)),
+  tar_target(final_features_id, union(pull(solitary_final_counts, feature), pull(pooled_final_counts, feature))),
+  tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_features_id)),
 
   # metrics ----
   tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_final_counts)),
+  tar_target(pooled_sample_metrics, make_sample_metrics(pooled_raw_counts, pooled_final_counts)),
 
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
@@ -54,6 +62,7 @@ list(
   tar_target(sample_id_var, config |> pluck("annotation", "sample id", "variable name", .default = "Sample_ID")),
   tar_target(sample_plural_name, sample_id_var |> str_extract("[a-z]+") |> str_replace("y$", "ies")),
   tar_target(solitary_output_prefix, solitary_stats_file |> str_remove("_stats[.]tsv$") |> str_extract("[A-Za-z0-9_]+$")),
+  tar_target(pooled_output_prefix, pooled_cluster_members_file |> str_remove("_cluster_members[.]tsv$") |> str_extract("[A-Za-z0-9_]+$")),
   tar_target(generic_output_prefix, solitary_output_prefix |> str_extract("[A-Za-z0-9]+$")),
   tar_target(
     solitary_counts_file,
@@ -63,10 +72,24 @@ list(
     format = "file"
   ),
   tar_target(
+    pooled_counts_file,
+    pooled_final_counts |>
+      trim_counts(feature_id_var, sample_id_var) |>
+      write_tsv(path(output_path, str_c(pooled_output_prefix, "_counts"), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
     solitary_metrics_file,
     solitary_sample_metrics |>
       trim_sample_metrics(str_replace_all(solitary_output_prefix, fixed("_"), " "), sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
+    pooled_metrics_file,
+    pooled_sample_metrics |>
+      trim_sample_metrics(str_replace_all(pooled_output_prefix, fixed("_"), " "), sample_id_var, sample_plural_name) |>
+      write_tsv(path(output_path, str_c(pooled_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   ),
   tar_target(

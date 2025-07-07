@@ -68,6 +68,26 @@ tidy_expected_errors <- function(expected_errors_table) {
     rename(feature = sha1)
 }
 
+tidy_cluster_members <- function(cluster_members_table) {
+  bind_rows(
+    cluster_members_table |>
+      mutate(member = seed) |>
+      select(-members),
+    cluster_members_table |>
+      separate_longer_delim(members, " ") |>
+      dplyr::filter(!is.na(members)) |>
+      rename(member = members)
+  )
+}
+
+make_pooled_counts <- function(pooled_cluster_members, reads_table, feature_ids) {
+  reads_table |>
+    dplyr::inner_join(pooled_cluster_members, by = join_by(sha1 == member)) |>
+    count(seed, sample) |>
+    dplyr::inner_join(feature_ids, by = join_by(seed == sha1)) |>
+    select(feature = seed, sample, count = n, new_feature_id)
+}
+
 summarise_expected_errors <- function(expected_errors_table) {
   expected_errors_table |>
     group_by(feature) |>
