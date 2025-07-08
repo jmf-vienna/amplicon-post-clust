@@ -54,8 +54,9 @@ list(
   tar_target(final_features_id, union(pull(solitary_final_counts, feature), pull(pooled_final_counts, feature))),
   tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_features_id)),
 
-  ## histograms ----
+  # histograms ----
   tar_target(count_histogram, make_count_histogram(solitary_raw_counts, solitary_final_counts, pooled_raw_counts, pooled_final_counts)),
+  tar_target(seqlen_histogram, make_seqlen_histogram(sequences_table)),
 
   # metrics ----
   tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_final_counts)),
@@ -108,6 +109,12 @@ list(
     count_histogram_file,
     count_histogram |>
       write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name, "_count_histogram"), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
+    seqlen_histogram_file,
+    seqlen_histogram |>
+      write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name, "_sequence_length_histogram"), ext = "tsv")),
     format = "file"
   )
 )

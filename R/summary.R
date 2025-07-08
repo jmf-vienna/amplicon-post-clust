@@ -15,3 +15,9 @@ make_count_histogram <- function(solitary_raw_counts, solitary_final_counts, poo
     summarise(count = sum(count), .groups = "drop") |>
     dplyr::count(count)
 }
+
+make_seqlen_histogram <- function(sequences_table) {
+  sequences_table |>
+    dplyr::count(sequence_length) |>
+    rename(raw = n)
+}
