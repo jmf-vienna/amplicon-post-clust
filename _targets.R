@@ -24,6 +24,7 @@ list(
 
   # settings ----
   tar_target(eepm_max, config |> pluck("filter", "eepm", .default = Inf)),
+  tar_target(count_sum_min, config |> pluck("filter", "count sum", .default = 2L)),
 
   ## reads ----
   tar_target(reads_file, find_one_file(input_path, str_c(path_glob, "reads.tsv")), format = "file"),
@@ -48,19 +49,33 @@ list(
   tar_target(pooled_raw_counts, make_pooled_counts(pooled_cluster_members, reads_table, feature_ids)),
 
   ## filters ----
-  tar_target(keep_features, filter_features(feature_quality, eepm_max)),
-  tar_target(solitary_final_counts, filter_counts(solitary_raw_counts, keep_features)),
-  tar_target(pooled_final_counts, filter_counts(pooled_raw_counts, keep_features)),
+  ### by eepm ----
+  tar_target(quality_features, get_quality_features(feature_quality, eepm_max)),
+  tar_target(solitary_quality_counts, filter_counts(solitary_raw_counts, quality_features)),
+  tar_target(pooled_quality_counts, filter_counts(pooled_raw_counts, quality_features)),
+  ### by sum(count) ----
+  tar_target(solitary_abundant_features, get_abundant_features(solitary_raw_counts, count_sum_min)),
+  tar_target(solitary_final_counts, filter_counts(solitary_quality_counts, solitary_abundant_features)),
+  tar_target(pooled_abundant_features, get_abundant_features(pooled_raw_counts, count_sum_min)),
+  tar_target(pooled_final_counts, filter_counts(pooled_quality_counts, pooled_abundant_features)),
+  ### final feature list ----
   tar_target(final_features_id, union(pull(solitary_final_counts, feature), pull(pooled_final_counts, feature))),
   tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_features_id)),
 
   # histograms ----
-  tar_target(count_histogram, make_count_histogram(solitary_raw_counts, solitary_final_counts, pooled_raw_counts, pooled_final_counts)),
+  tar_target(count_histogram, make_count_histogram(list(
+    solitary_raw = .make_count_histogram(solitary_raw_counts),
+    solitary_quality = .make_count_histogram(solitary_quality_counts),
+    solitary_final = .make_count_histogram(solitary_final_counts),
+    pooled_raw = .make_count_histogram(pooled_raw_counts),
+    pooled_quality = .make_count_histogram(pooled_quality_counts),
+    pooled_final = .make_count_histogram(pooled_final_counts)
+  ))),
   tar_target(seqlen_histogram, make_seqlen_histogram(sequences_table)),
 
   # metrics ----
-  tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_final_counts)),
-  tar_target(pooled_sample_metrics, make_sample_metrics(pooled_raw_counts, pooled_final_counts)),
+  tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_quality_counts, solitary_final_counts)),
+  tar_target(pooled_sample_metrics, make_sample_metrics(pooled_raw_counts, pooled_quality_counts, pooled_final_counts)),
 
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),

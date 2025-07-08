@@ -1,17 +1,12 @@
-make_count_histogram <- function(solitary_raw_counts, solitary_final_counts, pooled_raw_counts, pooled_final_counts) {
-  list(
-    solitary_raw = .make_count_histogram(solitary_raw_counts),
-    solitary_final = .make_count_histogram(solitary_final_counts),
-    pooled_raw = .make_count_histogram(pooled_raw_counts),
-    pooled_final = .make_count_histogram(pooled_final_counts)
-  ) |>
+make_count_histogram <- function(counts_list) {
+  counts_list |>
     imap(\(x, idx) dplyr::rename(x, "{idx}" := n)) |>
     purrr::reduce(\(x, y) dplyr::full_join(x, y, by = "count")) |>
     arrange(count)
 }
 
-.make_count_histogram <- function(data) {
-  data |>
+.make_count_histogram <- function(counts) {
+  counts |>
     group_by(feature) |>
     summarise(count = sum(count), .groups = "drop") |>
     dplyr::count(count)
