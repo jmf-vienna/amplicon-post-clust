@@ -36,21 +36,26 @@ list(
   tar_target(feature_ids, make_feature_ids(sequences_table)),
 
   # counts ----
+
   ## solitary ----
   tar_target(solitary_stats_file, find_one_file(input_path, str_c(path_glob, "solitary*_stats.tsv")), format = "file"),
   tar_target(solitary_stats, solitary_stats_file |> read_tsv() |> tidy_counts_table()),
   tar_target(solitary_raw_counts, tidy_counts(solitary_stats, feature_ids)),
+
   ## pooled ----
   tar_target(pooled_cluster_members_file, find_one_file(input_path, str_c(path_glob, "pooled*_cluster_members.tsv")), format = "file"),
   tar_target(pooled_cluster_members, pooled_cluster_members_file |> read_tsv() |> tidy_cluster_members()),
   tar_target(pooled_raw_counts, make_pooled_counts(pooled_cluster_members, reads_table, feature_ids)),
 
-  # filters
+  ## filters ----
   tar_target(keep_features, filter_features(feature_quality, eepm_max)),
   tar_target(solitary_final_counts, filter_counts(solitary_raw_counts, keep_features)),
   tar_target(pooled_final_counts, filter_counts(pooled_raw_counts, keep_features)),
   tar_target(final_features_id, union(pull(solitary_final_counts, feature), pull(pooled_final_counts, feature))),
   tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_features_id)),
+
+  ## histograms ----
+  tar_target(count_histogram, make_count_histogram(solitary_raw_counts, solitary_final_counts, pooled_raw_counts, pooled_final_counts)),
 
   # metrics ----
   tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_final_counts)),
@@ -97,6 +102,12 @@ list(
     final_features |>
       trim_features(feature_id_var) |>
       write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name), ext = "tsv")),
+    format = "file"
+  ),
+  tar_target(
+    count_histogram_file,
+    count_histogram |>
+      write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name, "_count_histogram"), ext = "tsv")),
     format = "file"
   )
 )
