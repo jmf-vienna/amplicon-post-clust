@@ -6,7 +6,8 @@ make_count_histogram <- function(solitary_raw_counts, solitary_final_counts, poo
     pooled_final = .make_count_histogram(pooled_final_counts)
   ) |>
     imap(\(x, idx) dplyr::rename(x, "{idx}" := n)) |>
-    purrr::reduce(\(x, y) dplyr::full_join(x, y, by = "count"))
+    purrr::reduce(\(x, y) dplyr::full_join(x, y, by = "count")) |>
+    arrange(count)
 }
 
 .make_count_histogram <- function(data) {
