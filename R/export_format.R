@@ -13,13 +13,12 @@ trim_features <- function(features, feature_id_var) {
     dplyr::rename("{feature_id_var}" := new_feature_id)
 }
 
-trim_sample_metrics <- function(sample_metrics, tool, sample_id_var, sample_plural_name) {
+trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {
   sample_metrics |>
     mutate(
-      tool = tool,
       resolution = sample_plural_name,
       state = "crude",
-      .before = 1L
+      .after = "tool"
     ) |>
     arrange(sample) |>
     dplyr::rename("{sample_id_var}" := sample)

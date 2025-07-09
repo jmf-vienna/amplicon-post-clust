@@ -36,6 +36,10 @@ list(
   tar_target(sequences_table, sequences_file |> read_tsv() |> tidy_sequences()),
   tar_target(feature_ids, make_feature_ids(sequences_table)),
 
+  # metrics from previous steps ----
+  tar_target(prior_metrics_file, find_one_file(input_path, str_c(path_glob, "metrics.tsv")), format = "file"),
+  tar_target(prior_metrics, read_tsv(prior_metrics_file)),
+
   # counts ----
 
   ## solitary ----
@@ -74,8 +78,14 @@ list(
   tar_target(seqlen_histogram, make_seqlen_histogram(sequences_table)),
 
   # metrics ----
-  tar_target(solitary_sample_metrics, make_sample_metrics(solitary_raw_counts, solitary_quality_counts, solitary_final_counts)),
-  tar_target(pooled_sample_metrics, make_sample_metrics(pooled_raw_counts, pooled_quality_counts, pooled_final_counts)),
+  tar_target(solitary_sample_metrics, make_sample_metrics(
+    prior_metrics, str_replace_all(solitary_output_prefix, fixed("_"), " "),
+    solitary_raw_counts, solitary_quality_counts, solitary_final_counts
+  )),
+  tar_target(pooled_sample_metrics, make_sample_metrics(
+    prior_metrics, str_replace_all(pooled_output_prefix, fixed("_"), " "),
+    pooled_raw_counts, pooled_quality_counts, pooled_final_counts
+  )),
 
   # export ----
   tar_target(feature_id_var, config |> pluck("annotation", "feature id", "variable name", .default = "Feature_ID")),
@@ -102,14 +112,14 @@ list(
   tar_target(
     solitary_metrics_file,
     solitary_sample_metrics |>
-      trim_sample_metrics(str_replace_all(solitary_output_prefix, fixed("_"), " "), sample_id_var, sample_plural_name) |>
+      trim_sample_metrics(sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     pooled_metrics_file,
     pooled_sample_metrics |>
-      trim_sample_metrics(str_replace_all(pooled_output_prefix, fixed("_"), " "), sample_id_var, sample_plural_name) |>
+      trim_sample_metrics(sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(pooled_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   ),

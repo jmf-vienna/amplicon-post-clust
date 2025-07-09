@@ -37,12 +37,14 @@ make_final_features <- function(sequences_table, feature_ids, feature_quality, k
     dplyr::left_join(feature_quality, by = join_by(sha1 == feature))
 }
 
-make_sample_metrics <- function(raw_counts, quality_counts, final_counts) {
+make_sample_metrics <- function(prior_metrics, tool, raw_counts, quality_counts, final_counts) {
   bind_rows(
     raw_counts |> add_column(phase = "clustering final", .before = 1L),
     quality_counts |> add_column(phase = "expected errors filtered", .before = 1L),
     final_counts |> add_column(phase = "sum(count) filtered", .before = 1L)
   ) |>
     group_by(phase, sample) |>
-    summarise(count = sum(count), features = dplyr::n(), .groups = "drop")
+    summarise(count = sum(count), features = dplyr::n(), .groups = "drop") |>
+    tibble::add_column(tool = tool, .before = "phase") |>
+    bind_rows(prior_metrics, new = _)
 }
