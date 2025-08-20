@@ -98,35 +98,35 @@ list(
   tar_target(
     solitary_counts_file,
     solitary_final_counts |>
-      trim_counts(feature_ids, feature_id_var, sample_id_var) |>
+      format_counts(feature_ids, feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     pooled_counts_file,
     pooled_final_counts |>
-      trim_counts(feature_ids, feature_id_var, sample_id_var) |>
+      format_counts(feature_ids, feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(pooled_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     solitary_metrics_file,
     solitary_sample_metrics |>
-      trim_sample_metrics(sample_id_var, sample_plural_name) |>
+      format_sample_metrics(sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     pooled_metrics_file,
     pooled_sample_metrics |>
-      trim_sample_metrics(sample_id_var, sample_plural_name) |>
+      format_sample_metrics(sample_id_var, sample_plural_name) |>
       write_tsv(path(output_path, str_c(pooled_output_prefix, "_", sample_plural_name), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     features_file,
     final_features |>
-      trim_features(feature_id_var) |>
+      format_features(feature_id_var) |>
       write_tsv(path(output_path, str_c(generic_output_prefix, "_", feature_plural_name), ext = "tsv")),
     format = "file"
   ),

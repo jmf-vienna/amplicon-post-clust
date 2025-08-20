@@ -22,7 +22,7 @@ make_feature_ids <- function(sequences_table, feature_id_prefix = "OTU") {
   feature_ids
 }
 
-trim_counts <- function(counts, feature_ids, feature_id_var, sample_id_var, count_var) {
+format_counts <- function(counts, feature_ids, feature_id_var, sample_id_var, count_var) {
   counts |>
     left_join(feature_ids, by = join_by(feature == sha1)) |>
     select(new_feature_id, sample, count) |>
@@ -30,7 +30,7 @@ trim_counts <- function(counts, feature_ids, feature_id_var, sample_id_var, coun
     dplyr::rename("{feature_id_var}" := new_feature_id, "{sample_id_var}" := sample)
 }
 
-trim_features <- function(features, feature_id_var) {
+format_features <- function(features, feature_id_var) {
   features |>
     mutate(quality_min_eepm = round(quality_min_eepm, 3L)) |>
     distinct(new_feature_id, quality_min_eepm, sequence_length, sequence, sha1, sha1base36) |>
@@ -38,7 +38,7 @@ trim_features <- function(features, feature_id_var) {
     dplyr::rename("{feature_id_var}" := new_feature_id)
 }
 
-trim_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {
+format_sample_metrics <- function(sample_metrics, sample_id_var, sample_plural_name) {
   sample_metrics |>
     mutate(
       resolution = sample_plural_name,
