@@ -34,7 +34,6 @@ list(
   ## sequences ----
   tar_target(sequences_file, find_one_file(input_path, str_c(path_glob, "sequences.tsv")), format = "file"),
   tar_target(sequences_table, sequences_file |> read_tsv() |> tidy_sequences()),
-  tar_target(feature_ids, make_feature_ids(sequences_table)),
 
   # metrics from previous steps ----
   tar_target(prior_metrics_file, find_one_file(input_path, str_c(path_glob, "metrics.tsv")), format = "file"),
@@ -45,12 +44,12 @@ list(
   ## solitary ----
   tar_target(solitary_stats_file, find_one_file(input_path, str_c(path_glob, "solitary*_stats.tsv")), format = "file"),
   tar_target(solitary_stats, solitary_stats_file |> read_tsv() |> tidy_counts_table()),
-  tar_target(solitary_raw_counts, tidy_counts(solitary_stats, feature_ids)),
+  tar_target(solitary_raw_counts, make_solitary_counts(solitary_stats)),
 
   ## pooled ----
   tar_target(pooled_cluster_members_file, find_one_file(input_path, str_c(path_glob, "pooled*_cluster_members.tsv")), format = "file"),
   tar_target(pooled_cluster_members, pooled_cluster_members_file |> read_tsv() |> tidy_cluster_members()),
-  tar_target(pooled_raw_counts, make_pooled_counts(pooled_cluster_members, reads_table, feature_ids)),
+  tar_target(pooled_raw_counts, make_pooled_counts(pooled_cluster_members, reads_table)),
 
   ## filters ----
   ### by eepm ----
@@ -64,6 +63,7 @@ list(
   tar_target(pooled_final_counts, filter_counts(pooled_quality_counts, pooled_abundant_features)),
   ### final feature list ----
   tar_target(final_features_id, union(pull(solitary_final_counts, feature), pull(pooled_final_counts, feature))),
+  tar_target(feature_ids, sequences_table |> filter(sha1 %in% final_features_id) |> make_feature_ids()),
   tar_target(final_features, make_final_features(sequences_table, feature_ids, feature_quality, final_features_id)),
 
   # histograms ----
@@ -98,14 +98,14 @@ list(
   tar_target(
     solitary_counts_file,
     solitary_final_counts |>
-      trim_counts(feature_id_var, sample_id_var) |>
+      trim_counts(feature_ids, feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(solitary_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),
   tar_target(
     pooled_counts_file,
     pooled_final_counts |>
-      trim_counts(feature_id_var, sample_id_var) |>
+      trim_counts(feature_ids, feature_id_var, sample_id_var) |>
       write_tsv(path(output_path, str_c(pooled_output_prefix, "_counts"), ext = "tsv")),
     format = "file"
   ),

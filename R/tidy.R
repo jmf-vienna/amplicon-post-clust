@@ -13,30 +13,6 @@ tidy_sequences <- function(sequences_table) {
     )
 }
 
-make_feature_ids <- function(sequences_table, feature_id_prefix = "OTU") {
-  # check for duplicate sequences
-  assert_unique(sequences_table, sequence)
-
-  feature_ids <-
-    sequences_table |>
-    mutate(
-      # sha1 = sequence |> openssl::sha1(), # handled by vsearch for now
-      sha1base36 = sha1 |> Rmpfr::mpfr(base = 16L) |> Rmpfr::formatMpfr(base = 36L, drop0trailing = TRUE),
-      new_feature_id = str_c(
-        feature_id_prefix, "_",
-        str_sub(sha1base36, 1L, 3L), "_",
-        str_sub(sha1base36, 4L, 6L), "_",
-        str_sub(sha1base36, 7L, 9L)
-      ),
-      .keep = "used"
-    )
-
-  # Assert that the new feature IDs are unique
-  assert_unique(feature_ids, new_feature_id)
-
-  feature_ids
-}
-
 tidy_counts_table <- function(counts_table) {
   counts_raw <-
     counts_table |>
@@ -58,11 +34,6 @@ tidy_counts_table <- function(counts_table) {
   counts_raw
 }
 
-tidy_counts <- function(counts_raw, feature_ids) {
-  counts_raw |>
-    left_join(feature_ids |> select(feature = sha1, new_feature_id), by = join_by(feature))
-}
-
 tidy_expected_errors <- function(expected_errors_table) {
   expected_errors_table |>
     rename(feature = sha1)
@@ -80,12 +51,15 @@ tidy_cluster_members <- function(cluster_members_table) {
   )
 }
 
-make_pooled_counts <- function(pooled_cluster_members, reads_table, feature_ids) {
+make_solitary_counts <- function(x) {
+  x
+}
+
+make_pooled_counts <- function(pooled_cluster_members, reads_table) {
   reads_table |>
     dplyr::inner_join(pooled_cluster_members, by = join_by(sha1 == member)) |>
     count(seed, sample) |>
-    dplyr::inner_join(feature_ids, by = join_by(seed == sha1)) |>
-    select(feature = seed, sample, count = n, new_feature_id)
+    select(feature = seed, sample, count = n)
 }
 
 summarise_expected_errors <- function(expected_errors_table) {
